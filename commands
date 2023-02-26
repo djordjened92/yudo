@@ -11,3 +11,5 @@ python train.py \
 --hyp data/hyp.scratch.tiny.yaml \
 --exist-ok \
 --adam
+
+python models/yolo.py --cfg cfg/training/yolov7-tiny.yaml
