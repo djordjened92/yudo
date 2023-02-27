@@ -185,10 +185,7 @@ class ComputeLoss:
                     t[range(n), tcls[i]] = self.cp
                     lcls += self.BCEcls(ps[:, 4:], t)  # BCE
 
-            obji = self.BCEobj(pi[..., 3], tobj)
-            lobj += obji * self.balance[i]  # obj loss
-            if self.autobalance:
-                self.balance[i] = self.balance[i] * 0.9999 + 0.0001 / obji.detach().item()
+            lobj += self.BCEobj(pi[..., 3], tobj)
 
         if self.autobalance:
             self.balance = [x / self.balance[self.ssi] for x in self.balance]
@@ -204,7 +201,7 @@ class ComputeLoss:
     def build_targets(self, p, targets):
         # Build targets for compute_loss(), input targets(image,class,x,y,w,h)
         nt = targets.shape[0]  # number of anchors, targets
-        tcls, tpos, indices, anch = [], [], [], []
+        tcls, tpos, indices = [], [], []
         gain = torch.ones(5, device=targets.device).long()  # normalized to gridspace gain
 
         g = 0.5  # bias
@@ -239,7 +236,7 @@ class ComputeLoss:
             gi, gj = gij.T  # grid xy indices
 
             # Append
-            indices.append((b, gj.clamp_(0, gain[2] - 1), gi.clamp_(0, gain[1] - 1)))  # image, grid indices
+            indices.append((b, gj.clamp_(0, gain[3] - 1), gi.clamp_(0, gain[2] - 1)))  # image, grid indices
             tpos.append(torch.cat((gxy - gij, ga), 1))  # box
             tcls.append(c)  # class
 
