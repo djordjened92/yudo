@@ -151,10 +151,11 @@ def plot_images(images, targets, paths=None, fname='images.jpg', names=None, max
         mosaic[block_y:block_y + h, block_x:block_x + w, :] = img
         if len(targets) > 0:
             image_targets = targets[targets[:, 0] == i]
-            boxes = xywh2xyxy(image_targets[:, 2:6]).T
+            # boxes = xywh2xyxy(image_targets[:, 2:6]).T
+            boxes = np.tile(image_targets[:, 2:4], 2).T
             classes = image_targets[:, 1].astype('int')
-            labels = image_targets.shape[1] == 6  # labels if no conf column
-            conf = None if labels else image_targets[:, 6]  # check for confidence presence (label vs pred)
+            labels = image_targets.shape[1] == 5  # labels if no conf column
+            conf = None if labels else image_targets[:, 5]  # check for confidence presence (label vs pred)
 
             if boxes.shape[1]:
                 if boxes.max() <= 1.01:  # if normalized with tolerance 0.01
