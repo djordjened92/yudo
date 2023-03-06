@@ -12,7 +12,7 @@ from tqdm import tqdm
 from models.experimental import attempt_load
 from utils.datasets import create_dataloader
 from utils.general import coco80_to_coco91_class, check_dataset, check_file, check_img_size, check_requirements, \
-    box_iou, non_max_suppression, scale_coords, xyxy2xywh, xywh2xyxy, set_logging, increment_path, colorstr
+    rbox_iou_d2, non_max_suppression, scale_coords, xyxy2xywh, xywh2xyxy, set_logging, increment_path, colorstr
 from utils.metrics import ap_per_class, ConfusionMatrix
 from utils.plots import plot_images, output_to_target, plot_study_txt
 from utils.torch_utils import select_device, time_synchronized, TracedModel
@@ -41,6 +41,11 @@ def test(data,
          trace=False,
          is_coco=False,
          v5_metric=False):
+    # Bounding box dimensions
+    b, a = 20, 35 # semi-minor and semi-major bee ellipse axis
+    box_w = 2 * b
+    box_h = 2 * a
+
     # Initialize/load model and set device
     training = model is not None
     if training:  # called by train.py
@@ -117,13 +122,13 @@ def test(data,
             # Compute loss
             if compute_loss:
                 loss += compute_loss([x.float() for x in train_out], targets)[1][:4]  # box, obj, cls
-            '''
+
             # Run NMS
-            targets[:, 2:4] *= torch.Tensor([width, height]).to(device)  # to pixels
-            lb = [targets[targets[:, 0] == i, 1:] for i in range(nb)] if save_hybrid else []  # for autolabelling
-            t = time_synchronized()
-            out = non_max_suppression(out, conf_thres=conf_thres, iou_thres=iou_thres, labels=lb, multi_label=True)
-            t1 += time_synchronized() - t
+            # targets[:, 2:4] *= torch.Tensor([width, height]).to(device)  # to pixels
+            # lb = [targets[targets[:, 0] == i, 1:] for i in range(nb)] if save_hybrid else []  # for autolabelling
+            # t = time_synchronized()
+            # out = non_max_suppression(out, conf_thres=conf_thres, iou_thres=iou_thres, labels=lb, multi_label=True)
+            # t1 += time_synchronized() - t
 
         # Statistics per image
         for si, pred in enumerate(out):
@@ -140,40 +145,41 @@ def test(data,
 
             # Predictions
             predn = pred.clone()
-            scale_coords(img[si].shape[1:], predn[:, :4], shapes[si][0], shapes[si][1])  # native-space pred
+            predn = torch.cat(predn[:, :2], torch.full((nb, 1), box_w), torch.full((nb, 1), box_h), predn[2:])
+            scale_coords(img[si].shape[1:], predn[:, :2], shapes[si][0], shapes[si][1])  # native-space pred
 
             # Append to text file
-            if save_txt:
-                gn = torch.tensor(shapes[si][0])[[1, 0, 1, 0]]  # normalization gain whwh
-                for *xyxy, conf, cls in predn.tolist():
-                    xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
-                    line = (cls, *xywh, conf) if save_conf else (cls, *xywh)  # label format
-                    with open(save_dir / 'labels' / (path.stem + '.txt'), 'a') as f:
-                        f.write(('%g ' * len(line)).rstrip() % line + '\n')
+            # if save_txt:
+            #     gn = torch.tensor(shapes[si][0])[[1, 0, 1, 0]]  # normalization gain whwh
+            #     for *xyxy, conf, cls in predn.tolist():
+            #         xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
+            #         line = (cls, *xywh, conf) if save_conf else (cls, *xywh)  # label format
+            #         with open(save_dir / 'labels' / (path.stem + '.txt'), 'a') as f:
+            #             f.write(('%g ' * len(line)).rstrip() % line + '\n')
 
-            # W&B logging - Media Panel Plots
-            if len(wandb_images) < log_imgs and wandb_logger.current_epoch > 0:  # Check for test operation
-                if wandb_logger.current_epoch % wandb_logger.bbox_interval == 0:
-                    box_data = [{"position": {"minX": xyxy[0], "minY": xyxy[1], "maxX": xyxy[2], "maxY": xyxy[3]},
-                                 "class_id": int(cls),
-                                 "box_caption": "%s %.3f" % (names[cls], conf),
-                                 "scores": {"class_score": conf},
-                                 "domain": "pixel"} for *xyxy, conf, cls in pred.tolist()]
-                    boxes = {"predictions": {"box_data": box_data, "class_labels": names}}  # inference-space
-                    wandb_images.append(wandb_logger.wandb.Image(img[si], boxes=boxes, caption=path.name))
-            wandb_logger.log_training_progress(predn, path, names) if wandb_logger and wandb_logger.wandb_run else None
+            # # W&B logging - Media Panel Plots
+            # if len(wandb_images) < log_imgs and wandb_logger.current_epoch > 0:  # Check for test operation
+            #     if wandb_logger.current_epoch % wandb_logger.bbox_interval == 0:
+            #         box_data = [{"position": {"minX": xyxy[0], "minY": xyxy[1], "maxX": xyxy[2], "maxY": xyxy[3]},
+            #                      "class_id": int(cls),
+            #                      "box_caption": "%s %.3f" % (names[cls], conf),
+            #                      "scores": {"class_score": conf},
+            #                      "domain": "pixel"} for *xyxy, conf, cls in pred.tolist()]
+            #         boxes = {"predictions": {"box_data": box_data, "class_labels": names}}  # inference-space
+            #         wandb_images.append(wandb_logger.wandb.Image(img[si], boxes=boxes, caption=path.name))
+            # wandb_logger.log_training_progress(predn, path, names) if wandb_logger and wandb_logger.wandb_run else None
 
-            # Append to pycocotools JSON dictionary
-            if save_json:
-                # [{"image_id": 42, "category_id": 18, "bbox": [258.15, 41.29, 348.26, 243.78], "score": 0.236}, ...
-                image_id = int(path.stem) if path.stem.isnumeric() else path.stem
-                box = xyxy2xywh(predn[:, :4])  # xywh
-                box[:, :2] -= box[:, 2:] / 2  # xy center to top-left corner
-                for p, b in zip(pred.tolist(), box.tolist()):
-                    jdict.append({'image_id': image_id,
-                                  'category_id': coco91class[int(p[5])] if is_coco else int(p[5]),
-                                  'bbox': [round(x, 3) for x in b],
-                                  'score': round(p[4], 5)})
+            # # Append to pycocotools JSON dictionary
+            # if save_json:
+            #     # [{"image_id": 42, "category_id": 18, "bbox": [258.15, 41.29, 348.26, 243.78], "score": 0.236}, ...
+            #     image_id = int(path.stem) if path.stem.isnumeric() else path.stem
+            #     box = xyxy2xywh(predn[:, :4])  # xywh
+            #     box[:, :2] -= box[:, 2:] / 2  # xy center to top-left corner
+            #     for p, b in zip(pred.tolist(), box.tolist()):
+            #         jdict.append({'image_id': image_id,
+            #                       'category_id': coco91class[int(p[5])] if is_coco else int(p[5]),
+            #                       'bbox': [round(x, 3) for x in b],
+            #                       'score': round(p[4], 5)})
 
             # Assign all predictions as incorrect
             correct = torch.zeros(pred.shape[0], niou, dtype=torch.bool, device=device)
@@ -182,10 +188,11 @@ def test(data,
                 tcls_tensor = labels[:, 0]
 
                 # target boxes
-                tbox = xywh2xyxy(labels[:, 1:5])
-                scale_coords(img[si].shape[1:], tbox, shapes[si][0], shapes[si][1])  # native-space labels
-                if plots:
-                    confusion_matrix.process_batch(predn, torch.cat((labels[:, 0:1], tbox), 1))
+                txy = labels[:, 1:3]
+                scale_coords(img[si].shape[1:], txy, shapes[si][0], shapes[si][1])  # native-space labels
+                tbox = torch.cat([txy, torch.ones_like(txy) * [box_w, box_h], txy[3:]], axis=-1)
+                # if plots:
+                #     confusion_matrix.process_batch(predn, torch.cat((labels[:, 0:1], tbox), 1))
 
                 # Per target class
                 for cls in torch.unique(tcls_tensor):
@@ -195,7 +202,7 @@ def test(data,
                     # Search for detections
                     if pi.shape[0]:
                         # Prediction to target ious
-                        ious, i = box_iou(predn[pi, :4], tbox[ti]).max(1)  # best ious, indices
+                        ious, i = rbox_iou_d2(predn[pi, :5], tbox[ti]).max(1)  # best ious, indices
 
                         # Append detections
                         detected_set = set()
@@ -275,7 +282,7 @@ def test(data,
             map, map50 = eval.stats[:2]  # update results (mAP@0.5:0.95, mAP@0.5)
         except Exception as e:
             print(f'pycocotools unable to run: {e}')
-    '''
+
     # Return results
     model.float()  # for training
     # if not training:

@@ -17,6 +17,8 @@ import pandas as pd
 import torch
 import torchvision
 import yaml
+from shapely.geometry import Polygon
+from detectron2.structures import BoxMode, RotatedBoxes, pairwise_iou_rotated
 
 from utils.google_utils import gsutil_getsize
 from utils.metrics import fitness
@@ -326,10 +328,11 @@ def scale_coords(img1_shape, coords, img0_shape, ratio_pad=None):
         gain = ratio_pad[0][0]
         pad = ratio_pad[1]
 
-    coords[:, [0, 2]] -= pad[0]  # x padding
-    coords[:, [1, 3]] -= pad[1]  # y padding
-    coords[:, :4] /= gain
-    clip_coords(coords, img0_shape)
+    coords[:, [0]] -= pad[0]  # x padding
+    coords[:, [1]] -= pad[1]  # y padding
+    coords[:, :2] /= gain
+    coords[:, 0].clamp_(0, img0_shape[1])  # x1
+    coords[:, 1].clamp_(0, img0_shape[0])  # y1
     return coords
 
 
@@ -465,6 +468,86 @@ def box_iou(box1, box2):
     inter = (torch.min(box1[:, None, 2:], box2[:, 2:]) - torch.max(box1[:, None, :2], box2[:, :2])).clamp(0).prod(2)
     return inter / (area1[:, None] + area2 - inter)  # iou = inter / (area1 + area2 - inter)
 
+def rbox_iou_shapely(gt, pr):
+    """
+    iou of rbox
+    g, p are in format [xc, yc, angle]
+    """
+    # Bounding box dimensions
+    b, a = 20, 35 # semi-minor and semi-major bee ellipse axis
+    box_w = 2 * b
+    box_h = 2 * a
+
+    # Get bbox points' coordinates
+    # O--------> x
+    # |
+    # |  A---B
+    # |  | E |
+    # |  D---C
+    # |
+    # v y
+    gtc = [[gt[0] - box_w//2, gt[1] - box_h//2], 
+           [gt[0] + box_w//2, gt[1] - box_h//2],
+           [gt[0] + box_w//2, gt[1] + box_h//2],
+           [gt[0] - box_w//2, gt[1] + box_h//2]]
+    
+    prc = [[pr[0] - box_w//2, pr[1] - box_h//2], 
+           [pr[0] + box_w//2, pr[1] - box_h//2],
+           [pr[0] + box_w//2, pr[1] + box_h//2],
+           [pr[0] - box_w//2, pr[1] + box_h//2]]
+    
+    # Rotate bboxes
+    gtr = []
+    prr = []
+
+    for i in range(4):
+        '''
+        xri=-sin(θ)(yi-yc)+cos(θ)(xi-xc)+xc
+        yri=cos(θ)(yi-yc)+sin(θ)(xi-xc)+yc
+        '''
+        gtr.append(-np.sin(gt[2]) * (gtc[i][1] - gt[1]) + \
+                   np.cos(gt[2]) * (gtc[i][0] - gt[0]) + gt[0]) # append X
+        gtr.append(np.cos(gt[2]) * (gtc[i][1] - gt[1]) + \
+                   np.sin(gt[2]) * (gtc[i][0] - gt[0]) + gt[1]) # append Y
+
+        prr.append(-np.sin(pr[2]) * (prc[i][1] - pr[1]) + \
+                   np.cos(pr[2]) * (prc[i][0] - pr[0]) + pr[0]) # append X
+        prr.append(np.cos(pr[2]) * (prc[i][1] - pr[1]) + \
+                   np.sin(pr[2]) * (prc[i][0] - pr[0]) + pr[1]) # append Y
+
+    g = np.array(gtr).astype(int)
+    p = np.array(prr).astype(int)
+    g = Polygon(g[:8].reshape((4, 2)))
+    p = Polygon(p[:8].reshape((4, 2)))
+    g = g.buffer(0)
+    p = p.buffer(0)
+    if not g.is_valid or not p.is_valid:
+        return 0
+    inter = Polygon(g).intersection(Polygon(p)).area
+    union = g.area + p.area - inter
+
+    if union == 0:
+        return 0
+    else:
+        # Cosine distance[0, 2] -> rescaled to the [0, 1]
+        # ds = (1 + cos(dθ)) / 2
+        direction_scale = (1 + np.cos(gt[2] - pr[2])) / 2
+        iou = direction_scale * (inter / union)
+        return iou
+
+def rbox_iou_d2(dt, gt):
+    '''
+    Arguments:
+        dt (Tensor[N, 5])
+        gt (Tensor[M, 5])
+    Returns:
+        iou (Tensor[N, M]): the NxM matrix containing the pairwise
+            IoU values for every element in dt and gt
+    '''
+    gt = RotatedBoxes(gt)
+    dt = RotatedBoxes(dt)
+    res = pairwise_iou_rotated(dt, gt)
+    return res
 
 def wh_iou(wh1, wh2):
     # Returns the nxm IoU matrix. wh1 is nx2, wh2 is mx2
