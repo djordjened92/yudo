@@ -177,7 +177,7 @@ class ComputeLoss:
                 lang += (1 - torch.cos(pa - tpos[i][:, 2])).mean()
 
                 # Objectness
-                tobj[b, gj, gi] = 1.0 - self.gr
+                tobj[b, gj, gi] = 1.0
 
                 # Classification
                 if self.nc > 1:  # cls loss (only if multiple classes)

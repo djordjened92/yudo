@@ -139,6 +139,10 @@ def test(data,
 
                 # Find class
                 conf, j = out_i[:, 4:].max(1, keepdim=True)
+
+                # Sort by confidence
+                out_i = out_i[out_i[:, 3].argsort(descending=True)]
+
                 out_i = torch.cat((out_i[:, :2],
                                    torch.full((no, 1), box_w).to(device),
                                    torch.full((no, 1), box_h).to(device),
