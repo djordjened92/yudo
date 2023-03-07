@@ -112,44 +112,46 @@ def test(data,
         with torch.no_grad():
             # Run model
             t = time_synchronized()
-            out, train_out = model(img, augment=augment)  # inference and training outputs
+            pred, train_out = model(img, augment=augment)  # inference and training outputs
             t0 += time_synchronized() - t
 
             # Compute loss
             if compute_loss:
                 loss += compute_loss([x.float() for x in train_out], targets)[1][:4]  # box, obj, cls
 
-            xc = out[..., 3] > conf_thres
+            xc = pred[..., 3] > conf_thres
 
             # Postprocess predictions
-            for i, out_i in enumerate(out): # iterate over batch
+            out = [torch.zeros((0, 7), device=device)] * pred.shape[0]
+            for i, pred_i in enumerate(pred): # iterate over batch
                 # Filter by confidence thershold
-                out_i = out_i[xc[i]]
+                pred_i = pred_i[xc[i]]
 
-                no = out_i.shape[0]
+                no = pred_i.shape[0]
                 if no == 0:
-                    out_i = torch.zeros((0, 7), device=device)
+                    pred_i = torch.zeros((0, 7), device=device)
                     continue
 
                 # Denormalize center
-                out_i[:, :2] *= torch.Tensor([width, height]).to(device)
+                pred_i[:, :2] *= torch.Tensor([width, height]).to(device)
 
                 # Scale class scores with confidence
-                out_i[:, 4:] *= out_i[:, 3:4]
+                pred_i[:, 4:] *= pred_i[:, 3:4]
 
                 # Find class
-                conf, j = out_i[:, 4:].max(1, keepdim=True)
+                conf, j = pred_i[:, 4:].max(1, keepdim=True)
 
                 # Sort by confidence
-                out_i = out_i[out_i[:, 3].argsort(descending=True)]
+                pred_i = pred_i[pred_i[:, 3].argsort(descending=True)]
 
-                out_i = torch.cat((out_i[:, :2],
+                pred_i = torch.cat((pred_i[:, :2],
                                    torch.full((no, 1), box_w).to(device),
                                    torch.full((no, 1), box_h).to(device),
-                                   out_i[:, 2:3],
+                                   pred_i[:, 2:3],
                                    conf,
                                    j.float()), axis=1)
-            
+                out[i] = pred_i
+
             targets[:, 2:4] *= torch.Tensor([width, height]).to(device)  # to pixels
 
         # Statistics per image
@@ -181,12 +183,12 @@ def test(data,
                 tbox = torch.cat([txy,
                                   torch.full((nl, 1), box_w).to(device),
                                   torch.full((nl, 1), box_h).to(device),
-                                  txy[:, 3:]], axis=-1)
+                                  labels[:, 3:]], axis=-1)
 
                 # Per target class
                 for cls in torch.unique(tcls_tensor):
                     ti = (cls == tcls_tensor).nonzero(as_tuple=False).view(-1)  # prediction indices
-                    pi = (cls == pred[:, 5]).nonzero(as_tuple=False).view(-1)  # target indices
+                    pi = (cls == pred[:, 6]).nonzero(as_tuple=False).view(-1)  # target indices
 
                     # Search for detections
                     if pi.shape[0]:
