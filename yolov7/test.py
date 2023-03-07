@@ -143,7 +143,7 @@ def test(data,
 
                 pred_i = torch.cat((pred_i[:, :2],
                                    torch.full((no, 1), box_w).to(device),
-                                   torch.full((no, 1), box_h).to(device),
+                                   torch.where(j==0, box_h, box_w).to(device),
                                    pred_i[:, 2:3],
                                    conf,
                                    j.float()), axis=1)
@@ -183,13 +183,13 @@ def test(data,
                 scale_coords(img[si].shape[1:], txy, shapes[si][0], shapes[si][1])  # native-space labels
                 tbox = torch.cat([txy,
                                   torch.full((nl, 1), box_w).to(device),
-                                  torch.full((nl, 1), box_h).to(device),
+                                  torch.where(tcls_tensor==0, box_h, box_w)[..., None].to(device),
                                   labels[:, 3:]], axis=-1)
 
                 # Per target class
                 for cls in torch.unique(tcls_tensor):
-                    ti = (cls == tcls_tensor).nonzero(as_tuple=False).view(-1)  # prediction indices
-                    pi = (cls == pred[:, 6]).nonzero(as_tuple=False).view(-1)  # target indices
+                    ti = (cls == tcls_tensor).nonzero(as_tuple=False).view(-1)
+                    pi = (cls == pred[:, 6]).nonzero(as_tuple=False).view(-1)
 
                     # Search for detections
                     if pi.shape[0]:
