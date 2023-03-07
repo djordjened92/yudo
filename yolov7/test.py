@@ -132,17 +132,14 @@ def test(data,
                     pred_i = torch.zeros((0, 7), device=device)
                     continue
 
-                # Denormalize center
-                pred_i[:, :2] *= torch.Tensor([width, height]).to(device)
-
                 # Scale class scores with confidence
                 pred_i[:, 4:] *= pred_i[:, 3:4]
 
-                # Find class
-                conf, j = pred_i[:, 4:].max(1, keepdim=True)
-
                 # Sort by confidence
                 pred_i = pred_i[pred_i[:, 3].argsort(descending=True)]
+
+                # Find class
+                conf, j = pred_i[:, 4:].max(1, keepdim=True)
 
                 pred_i = torch.cat((pred_i[:, :2],
                                    torch.full((no, 1), box_w).to(device),
@@ -150,6 +147,10 @@ def test(data,
                                    pred_i[:, 2:3],
                                    conf,
                                    j.float()), axis=1)
+                
+                # Ignore predicted angle when andomen class is predicted
+                pred_i[:, 4] = torch.where(pred_i[:, 6]==1, torch.tensor(0.).to(device), pred_i[:, 4])
+
                 out[i] = pred_i
 
             targets[:, 2:4] *= torch.Tensor([width, height]).to(device)  # to pixels
@@ -207,7 +208,7 @@ def test(data,
                                     break
 
             # Append statistics (correct, conf, pcls, tcls)
-            stats.append((correct.cpu(), pred[:, 4].cpu(), pred[:, 5].cpu(), tcls))
+            stats.append((correct.cpu(), pred[:, 5].cpu(), pred[:, 6].cpu(), tcls))
 
     # Compute statistics
     stats = [np.concatenate(x, 0) for x in zip(*stats)]  # to numpy

@@ -173,8 +173,11 @@ class ComputeLoss:
                 pxy = ps[:, :2].sigmoid() * 2. - 0.5
                 lpos += self.MSEpos(pxy, tpos[i][:, :2])  # xy loss
 
+                # Calculate angle loss for regular bee position only
                 pa = ps[:, 2]
-                lang += (1 - torch.cos(pa - tpos[i][:, 2])).mean()
+                da = pa - tpos[i][:, 2]
+                da = da[tcls[i] == 0]
+                lang += (1 - torch.cos(da)).mean()
 
                 # Objectness
                 tobj[b, gj, gi] = 1.0
