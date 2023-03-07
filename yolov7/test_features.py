@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from utils.general import rbox_iou
+from utils.general import rbox_iou_d2, rbox_iou_shapely
 from detectron2.structures import BoxMode, RotatedBoxes, pairwise_iou_rotated
 
 def test_shapely():
@@ -36,20 +36,18 @@ def test_shapely():
     print(f'gtr: {gtr}\n')
     print(np.array(gtr)[:8].reshape((4, 2)), '\n')
     print(f'ptr: {ptr}\n')
-    print(rbox_iou(gtr, ptr))
+    print(rbox_iou_shapely(gtr, ptr))
 
 def test_detectron2():
     w = 70
     h = 100
     gt = torch.tensor([[100, 100, w, h, 0.2],
+                       [150, 100, w, h, 0.2],
                        [150, 100, w, h, 0.2]])
-    dt = torch.tensor([[100, 100, w, h, 0.3],
-                       [100, 150, w, h, 0.3]])
+    dt = torch.tensor([[100, 100, w, h, 1.0],
+                       [100, 150, w, h, 1.5]])
 
-    gt = RotatedBoxes(gt)
-    dt = RotatedBoxes(dt)
-    res = pairwise_iou_rotated(dt, gt)
-    print(res)
+    print(rbox_iou_d2(dt, gt))
 
 if __name__=='__main__':
     # test_shapely()

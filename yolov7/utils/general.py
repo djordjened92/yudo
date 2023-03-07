@@ -538,16 +538,26 @@ def rbox_iou_shapely(gt, pr):
 def rbox_iou_d2(dt, gt):
     '''
     Arguments:
+        [x,y,w,h,a]
         dt (Tensor[N, 5])
         gt (Tensor[M, 5])
     Returns:
         iou (Tensor[N, M]): the NxM matrix containing the pairwise
             IoU values for every element in dt and gt
     '''
-    gt = RotatedBoxes(gt)
-    dt = RotatedBoxes(dt)
-    res = pairwise_iou_rotated(dt, gt)
-    return res
+    # Rotated boxes iou
+    gt_rb = RotatedBoxes(gt)
+    dt_rb = RotatedBoxes(dt)
+    iou = pairwise_iou_rotated(dt_rb, gt_rb)
+
+    # Direction scale
+    gt_a = gt[:, -1]
+    dt_a = dt[:, -1].unsqueeze(-1)
+    angle_dist = (1 + torch.cos(dt_a - gt_a)) / 2
+
+    iou = iou * angle_dist
+
+    return iou
 
 def wh_iou(wh1, wh2):
     # Returns the nxm IoU matrix. wh1 is nx2, wh2 is mx2
@@ -693,11 +703,11 @@ def non_max_suppression(prediction, conf_thres=0.25, iou_thres=0.45, classes=Non
     """Runs Non-Maximum Suppression (NMS) on inference results
 
     Returns:
-         list of detections, on (n,6) tensor per image [xyxy, conf, cls]
+         list of detections, on (n,7) tensor per image [xywha, conf, cls]
     """
 
-    nc = prediction.shape[2] - 5  # number of classes
-    xc = prediction[..., 4] > conf_thres  # candidates
+    nc = prediction.shape[2] - 6  # number of classes
+    xc = prediction[..., 5] > conf_thres  # candidates
 
     # Settings
     min_wh, max_wh = 2, 4096  # (pixels) minimum and maximum box width and height
@@ -709,7 +719,7 @@ def non_max_suppression(prediction, conf_thres=0.25, iou_thres=0.45, classes=Non
     merge = False  # use merge-NMS
 
     t = time.time()
-    output = [torch.zeros((0, 6), device=prediction.device)] * prediction.shape[0]
+    output = [torch.zeros((0, 7), device=prediction.device)] * prediction.shape[0]
     for xi, x in enumerate(prediction):  # image index, image inference
         # Apply constraints
         # x[((x[..., 2:4] < min_wh) | (x[..., 2:4] > max_wh)).any(1), 4] = 0  # width-height
@@ -730,10 +740,10 @@ def non_max_suppression(prediction, conf_thres=0.25, iou_thres=0.45, classes=Non
 
         # Compute conf
         if nc == 1:
-            x[:, 5:] = x[:, 4:5] # for models with one class, cls_loss is 0 and cls_conf is always 0.5,
+            x[:, 6:] = x[:, 5:6] # for models with one class, cls_loss is 0 and cls_conf is always 0.5,
                                  # so there is no need to multiplicate.
         else:
-            x[:, 5:] *= x[:, 4:5]  # conf = obj_conf * cls_conf
+            x[:, 6:] *= x[:, 5:6]  # conf = obj_conf * cls_conf
 
         # Box (center x, center y, width, height) to (x1, y1, x2, y2)
         box = xywh2xyxy(x[:, :4])
@@ -764,7 +774,7 @@ def non_max_suppression(prediction, conf_thres=0.25, iou_thres=0.45, classes=Non
         # Batched NMS
         c = x[:, 5:6] * (0 if agnostic else max_wh)  # classes
         boxes, scores = x[:, :4] + c, x[:, 4]  # boxes (offset by class), scores
-        i = torchvision.ops.nms(boxes, scores, iou_thres)  # NMS
+        i = torch.ops.detectron2.nms_rotated(boxes, scores, iou_thres)  # NMS
         if i.shape[0] > max_det:  # limit detections
             i = i[:max_det]
         if merge and (1 < n < 3E3):  # Merge NMS (boxes merged using weighted mean)

@@ -406,7 +406,6 @@ def train(hyp, opt, device, tb_writer=None):
                                                  dataloader=testloader,
                                                  save_dir=save_dir,
                                                  verbose=nc < 50 and final_epoch,
-                                                 plots=plots and final_epoch,
                                                  wandb_logger=wandb_logger,
                                                  compute_loss=compute_loss,
                                                  is_coco=is_coco,
@@ -487,8 +486,6 @@ def train(hyp, opt, device, tb_writer=None):
                                           single_cls=opt.single_cls,
                                           dataloader=testloader,
                                           save_dir=save_dir,
-                                          save_json=True,
-                                          plots=False,
                                           is_coco=is_coco,
                                           v5_metric=opt.v5_metric)
 
