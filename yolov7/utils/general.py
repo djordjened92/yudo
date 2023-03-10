@@ -715,7 +715,7 @@ def non_max_suppression(prediction, box_w, box_h, conf_thres=0.25, iou_thres=0.4
 
     # Settings
     min_wh, max_wh = 2, 4096  # (pixels) minimum and maximum box width and height
-    max_det = 300  # maximum number of detections per image
+    max_det = 500  # maximum number of detections per image
     max_nms = 30000  # maximum number of boxes into torchvision.ops.nms()
     time_limit = 10.0  # seconds to quit after
 
@@ -734,21 +734,21 @@ def non_max_suppression(prediction, box_w, box_h, conf_thres=0.25, iou_thres=0.4
         x[:, 4:] *= x[:, 3:4]  # conf = obj_conf * cls_conf
 
         # Assign box_h, box_w and class
-        conf, j = x[:, 5:].max(1, keepdim=True)
+        conf, j = x[:, 4:].max(1, keepdim=True)
         x = torch.cat((x[:, :2],
-                            torch.full((x.shape[0], 1), box_w).to(x.device),
-                            torch.where(j==0, box_h, box_w).to(x.device),
-                            x[:, 2:3],
-                            conf,
-                            j.float()), axis=1)
-        x = x[conf.view(-1) > conf_thres]
+                       torch.full((x.shape[0], 1), box_w).to(x.device),
+                       torch.where(j==0, box_h, box_w).to(x.device),
+                       x[:, 2:3],
+                       conf,
+                       j.float()), axis=1)
+        # x = x[conf.view(-1) > conf_thres]
 
         # Ignore predicted angle when andomen class is predicted
         x[:, 4] = torch.where(x[:, 6]==1, torch.tensor(0.).to(x.device), x[:, 4])
 
         # Filter by class
         if classes is not None:
-            x = x[(x[:, 5:6] == torch.tensor(classes, device=x.device)).any(1)]
+            x = x[(x[:, 6:7] == torch.tensor(classes, device=x.device)).any(1)]
 
         # Check shape
         n = x.shape[0]  # number of boxes
