@@ -23,6 +23,7 @@ def test(data,
          batch_size=32,
          imgsz=640,
          conf_thres=0.2,
+         iou_thres=0.4,
          save_json=False,
          single_cls=False,
          augment=False,
@@ -33,7 +34,7 @@ def test(data,
          save_txt=False,  # for auto-labelling
          wandb_logger=None,
          compute_loss=None,
-         half_precision=True,
+         half_precision=False,
          trace=False,
          is_coco=False,
          v5_metric=False):
@@ -112,48 +113,18 @@ def test(data,
         with torch.no_grad():
             # Run model
             t = time_synchronized()
-            pred, train_out = model(img, augment=augment)  # inference and training outputs
+            out, train_out = model(img, augment=augment)  # inference and training outputs
             t0 += time_synchronized() - t
 
             # Compute loss
             if compute_loss:
                 loss += compute_loss([x.float() for x in train_out], targets)[1][:4]  # box, obj, cls
 
-            xc = pred[..., 3] > conf_thres
-
-            # Postprocess predictions
-            out = [torch.zeros((0, 7), device=device)] * pred.shape[0]
-            for i, pred_i in enumerate(pred): # iterate over batch
-                # Filter by confidence thershold
-                pred_i = pred_i[xc[i]]
-
-                no = pred_i.shape[0]
-                if no == 0:
-                    pred_i = torch.zeros((0, 7), device=device)
-                    continue
-
-                # Scale class scores with confidence
-                pred_i[:, 4:] *= pred_i[:, 3:4]
-
-                # Sort by confidence
-                pred_i = pred_i[pred_i[:, 3].argsort(descending=True)]
-
-                # Find class
-                conf, j = pred_i[:, 4:].max(1, keepdim=True)
-
-                pred_i = torch.cat((pred_i[:, :2],
-                                   torch.full((no, 1), box_w).to(device),
-                                   torch.where(j==0, box_h, box_w).to(device),
-                                   pred_i[:, 2:3],
-                                   conf,
-                                   j.float()), axis=1)
-                
-                # Ignore predicted angle when andomen class is predicted
-                pred_i[:, 4] = torch.where(pred_i[:, 6]==1, torch.tensor(0.).to(device), pred_i[:, 4])
-
-                out[i] = pred_i
-
             targets[:, 2:4] *= torch.Tensor([width, height]).to(device)  # to pixels
+
+            t = time_synchronized()
+            out = non_max_suppression(out, box_w, box_h, conf_thres=conf_thres, iou_thres=iou_thres)
+            t1 += time_synchronized() - t
 
         # Statistics per image
         for si, pred in enumerate(out):
