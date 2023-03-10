@@ -170,7 +170,7 @@ class ComputeLoss:
                 ps = pi[b, gj, gi]  # prediction subset corresponding to targets
 
                 # Regression
-                pxy = ps[:, :2].sigmoid() * 2. - 0.5
+                pxy = ps[:, :2].sigmoid()# * 2. - 0.5
                 lpos += self.MSEpos(pxy, tpos[i][:, :2])  # xy loss
 
                 # Calculate angle loss for regular bee position only

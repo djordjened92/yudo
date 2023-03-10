@@ -127,7 +127,7 @@ class IDetect(nn.Module):
                     self.grid[i] = self._make_grid(nx, ny).to(x[i].device)
 
                 y = torch.cat([x[i][..., :2].sigmoid(), x[i][..., 2:3], x[i][..., 3:].sigmoid()], axis=-1)
-                y[..., 0:2] = (y[..., 0:2] * 2. - 0.5 + self.grid[i]) * self.stride[i]  # xy
+                y[..., 0:2] = (y[..., 0:2] + self.grid[i]) * self.stride[i]  # xy
                 z.append(y.view(bs, -1, self.no))
 
         return x if self.training else (torch.cat(z, 1), x)

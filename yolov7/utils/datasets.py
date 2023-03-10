@@ -308,10 +308,7 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
         mosaic = self.mosaic and random.random() < hyp['mosaic']
         if mosaic:
             # Load mosaic
-            if random.random() < 0.8:
-                img, labels = load_mosaic(self, index)
-            else:
-                img, labels = load_mosaic9(self, index)
+            img, labels = load_mosaic(self, index)
             shapes = None
 
             # MixUp https://arxiv.org/pdf/1710.09412.pdf
@@ -361,6 +358,9 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
         if nL:
             labels[:, 2] /= img.shape[0]  # normalized height 0-1
             labels[:, 1] /= img.shape[1]  # normalized width 0-1
+        
+        if mosaic:
+            img = cv2.resize(img, (self.img_size, self.img_size), interpolation=cv2.INTER_LINEAR)
 
         if self.augment:
             # flip up-down
@@ -368,12 +368,17 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
                 img = np.flipud(img)
                 if nL:
                     labels[:, 2] = 1 - labels[:, 2]
+                    labels[:, 3] = np.where(labels[:, 3] > np.pi,
+                                            3*np.pi/2 + (3*np.pi/2 - labels[:, 3]),
+                                            np.pi/2 + (np.pi/2 - labels[:, 3]))
+                    labels[:, 3] = np.clip(labels[:, 3], 0, 2*np.pi)
 
             # flip left-right
             if random.random() < hyp['fliplr']:
                 img = np.fliplr(img)
                 if nL:
                     labels[:, 1] = 1 - labels[:, 1]
+                    labels[:, 3] = 2*np.pi - labels[:, 3]
 
         labels_out = torch.zeros((nL, 5))
         if nL:
@@ -509,7 +514,7 @@ def load_mosaic(self, index):
     # Augment
     #img4, labels4, segments4 = remove_background(img4, labels4, segments4)
     #sample_segments(img4, labels4, segments4, probability=self.hyp['copy_paste'])
-    img4, labels4, segments4 = copy_paste(img4, labels4, segments4, probability=self.hyp['copy_paste'])
+    # img4, labels4, segments4 = copy_paste(img4, labels4, segments4, probability=self.hyp['copy_paste'])
 
     return img4, labels4
 
