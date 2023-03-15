@@ -102,5 +102,5 @@ head:
    [65, 1, Conv, [256, 3, 1, None, 1, nn.LeakyReLU(0.1)]],
    [73, 1, Conv, [512, 3, 1, None, 1, nn.LeakyReLU(0.1)]],
 
-   [[76], 1, IDetect, [nc]],   # Detect(P3, P4, P5)
+   [[75], 1, IDetect, [nc]],   # Detect(P3, P4, P5)
   ]

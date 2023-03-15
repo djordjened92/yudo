@@ -743,7 +743,7 @@ def non_max_suppression(prediction, box_w, box_h, conf_thres=0.25, iou_thres=0.4
                        j.float()), axis=1)
         # x = x[conf.view(-1) > conf_thres]
 
-        # Ignore predicted angle when andomen class is predicted
+        # Ignore predicted angle when abdomen class is predicted
         x[:, 4] = torch.where(x[:, 6]==1, torch.tensor(0.).to(x.device), x[:, 4])
 
         # Filter by class
