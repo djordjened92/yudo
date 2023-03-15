@@ -123,7 +123,7 @@ class IDetect(nn.Module):
             x[i] = x[i].view(bs, self.no, ny, nx).permute(0, 2, 3, 1).contiguous()
 
             if not self.training:  # inference
-                if self.grid[i].shape[2:4] != x[i].shape[2:4]:
+                if self.grid[i].shape[1:3] != x[i].shape[1:3]:
                     self.grid[i] = self._make_grid(nx, ny).to(x[i].device)
 
                 y = torch.cat([x[i][..., :2].sigmoid(), x[i][..., 2:3], x[i][..., 3:].sigmoid()], axis=-1)
@@ -187,7 +187,7 @@ class IDetect(nn.Module):
     @staticmethod
     def _make_grid(nx=20, ny=20):
         yv, xv = torch.meshgrid([torch.arange(ny), torch.arange(nx)])
-        return torch.stack((xv, yv), 2).view((1, 1, ny, nx, 2)).float()
+        return torch.stack((xv, yv), 2).view((1, ny, nx, 2)).float()
 
     def convert(self, z):
         z = torch.cat(z, 1)
@@ -695,9 +695,9 @@ class Model(nn.Module):
                 m.conv = fuse_conv_and_bn(m.conv, m.bn)  # update conv
                 delattr(m, 'bn')  # remove batchnorm
                 m.forward = m.fuseforward  # update forward
-            elif isinstance(m, (IDetect, IAuxDetect)):
-                m.fuse()
-                m.forward = m.fuseforward
+            # elif isinstance(m, (IDetect, IAuxDetect)):
+            #     m.fuse()
+            #     m.forward = m.fuseforward
         self.info()
         return self
 

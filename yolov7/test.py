@@ -22,7 +22,7 @@ def test(data,
          weights=None,
          batch_size=32,
          imgsz=640,
-         conf_thres=0.2,
+         conf_thres=0.01,
          iou_thres=0.4,
          save_json=False,
          single_cls=False,
@@ -89,7 +89,7 @@ def test(data,
         if device.type != 'cpu':
             model(torch.zeros(1, 3, imgsz, imgsz).to(device).type_as(next(model.parameters())))  # run once
         task = opt.task if opt.task in ('train', 'val', 'test') else 'val'  # path to train/val/test images
-        dataloader = create_dataloader(data[task], imgsz, batch_size, gs, opt, pad=0.5, rect=True,
+        dataloader = create_dataloader(data[task], imgsz, batch_size, gs, opt,
                                        prefix=colorstr(f'{task}: '))[0]
 
     if v5_metric:
@@ -258,9 +258,7 @@ if __name__ == '__main__':
              opt.single_cls,
              opt.augment,
              opt.verbose,
-             save_txt=opt.save_txt | opt.save_hybrid,
-             save_hybrid=opt.save_hybrid,
-             save_conf=opt.save_conf,
+             save_txt=opt.save_txt,
              trace=not opt.no_trace,
              v5_metric=opt.v5_metric
              )
