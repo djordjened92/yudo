@@ -338,21 +338,8 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
             # Augment colorspace
             augment_hsv(img, hgain=hyp['hsv_h'], sgain=hyp['hsv_s'], vgain=hyp['hsv_v'])
 
-            # Apply cutouts
-            # if random.random() < 0.9:
-            #     labels = cutout(img, labels)
-            
-            # if random.random() < hyp['paste_in']:
-            #     sample_labels, sample_images, sample_masks = [], [], [] 
-            #     while len(sample_labels) < 30:
-            #         sample_labels_, sample_images_, sample_masks_ = load_samples(self, random.randint(0, len(self.labels) - 1))
-            #         sample_labels += sample_labels_
-            #         sample_images += sample_images_
-            #         sample_masks += sample_masks_
-            #         #print(len(sample_labels))
-            #         if len(sample_labels) == 0:
-            #             break
-            #     labels = pastein(img, labels, sample_labels, sample_images, sample_masks)
+            # Apply copy paste
+            img, labels = copy_paste(img, labels, [1], self.hyp['copy_paste'], self.hyp['num_of_copies'])
 
         nL = len(labels)  # number of labels
         if nL:
@@ -639,28 +626,45 @@ def load_samples(self, index):
     return sample_labels, sample_images, sample_masks
 
 
-def copy_paste(img, labels, segments, probability=0.5):
-    # Implement Copy-Paste augmentation https://arxiv.org/abs/2012.07177, labels as nx5 np.array(cls, xyxy)
-    n = len(segments)
+def copy_paste(img, labels, classes, probability=0.5, copies=1):
+    n = len(labels)
+    box_w = 80
+    box_h = 80
+    box_h_half = int(box_h // 2)
+    box_w_half = int(box_w // 2)
     if probability and n:
         h, w, c = img.shape  # height, width, channels
         im_new = np.zeros(img.shape, np.uint8)
         for j in random.sample(range(n), k=round(probability * n)):
-            l, s = labels[j], segments[j]
-            box = w - l[3], l[2], w - l[1], l[4]
-            ioa = bbox_ioa(box, labels[:, 1:5])  # intersection over area
-            if (ioa < 0.30).all():  # allow 30% obscuration of existing labels
-                labels = np.concatenate((labels, [[l[0], *box]]), 0)
-                segments.append(np.concatenate((w - s[:, 0:1], s[:, 1:2]), 1))
-                cv2.drawContours(im_new, [segments[j].astype(np.int32)], -1, (255, 255, 255), cv2.FILLED)
+            l = labels[j]
+            if l[0] in classes:
+                box = img[int(l[2]) - box_h_half:int(l[2]) + box_h_half,
+                          int(l[1]) - box_w_half:int(l[1]) + box_w_half, :]
+                
+                for _ in range(copies):
+                    if random.random() < 0.5:
+                        box = np.flipud(box)
 
-        result = cv2.bitwise_and(src1=img, src2=im_new)
-        result = cv2.flip(result, 1)  # augment segments (flip left-right)
-        i = result > 0  # pixels to replace
-        # i[:, :] = result.max(2).reshape(h, w, 1)  # act over ch
-        img[i] = result[i]  # cv2.imwrite('debug.jpg', img)  # debug
+                    if random.random() < 0.5:
+                        box = np.fliplr(box)
+                    
+                    dists = np.zeros((labels.shape[0], 1))
+                    while not (dists > box_h_half).all():
+                        # Find position for pasting
+                        xmin = random.randint(box_w, w - 2 * box_w)
+                        ymin = random.randint(box_h, h - 2 * box_h)
 
-    return img, labels, segments
+                        dists = np.sqrt(np.square(labels[:, 1] - box_w_half - xmin) \
+                                        + np.square(labels[:, 2] - box_h_half - ymin))
+                    box_h_t, box_w_t, _ = box.shape
+                    im_new[ymin:ymin + box_h_t,
+                        xmin:xmin + box_w_t, :] = box
+                    new_label = [[l[0], xmin + int(box_w_t//2), ymin + int(box_h_t//2), l[3]]]
+                    labels = np.concatenate((labels, np.array(new_label)), 0)
+        
+        img = np.where(im_new, im_new, img)
+
+    return img, labels
 
 
 def remove_background(img, labels, segments):
