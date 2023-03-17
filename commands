@@ -1,15 +1,25 @@
 python train.py \
---epochs 200 \
+--epochs 300 \
 --workers 4 \
 --device 0 \
---batch-size 8 \
+--batch-size 4 \
 --data data/data.yaml \
 --img-size 512 512 \
---cfg cfg/training/yolov7-tiny.yaml \
---weights 'yolov7-tiny.pt' \
---name yolov7-tiny_007 \
---hyp data/hyp.scratch.tiny.yaml \
+--cfg cfg/training/yolov7.yaml \
+--weights 'yolov7_training.pt' \
+--name yolov7-tiny_003 \
+--hyp data/hyp.scratch.yaml \
+--image-weights \
 --exist-ok \
 --adam
 
 python models/yolo.py --cfg cfg/training/yolov7-tiny.yaml
+
+
+python test.py \
+--data data/data.yaml \
+--weights runs/train/yolov7-tiny_test/weights/best.pt \
+--img-size 512 \
+--conf-thres 0.01 \
+--iou-thres 0.4 \
+--no-trace

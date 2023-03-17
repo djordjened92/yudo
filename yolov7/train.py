@@ -407,7 +407,6 @@ def train(hyp, opt, device, tb_writer=None):
                                                  verbose=True,
                                                  wandb_logger=wandb_logger,
                                                  compute_loss=compute_loss,
-                                                 is_coco=is_coco,
                                                  v5_metric=opt.v5_metric)
 
             # Write

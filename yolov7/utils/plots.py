@@ -107,7 +107,7 @@ def output_to_target(output):
     targets = []
     for i, o in enumerate(output):
         for *box, conf, cls in o.cpu().numpy():
-            targets.append([i, cls, *list(*xyxy2xywh(np.array(box)[None])), conf])
+            targets.append([i, cls, *box, conf])
     return np.array(targets)
 
 
@@ -151,11 +151,14 @@ def plot_images(images, targets, paths=None, fname='images.jpg', names=None, max
         mosaic[block_y:block_y + h, block_x:block_x + w, :] = img
         if len(targets) > 0:
             image_targets = targets[targets[:, 0] == i]
-            # boxes = xywh2xyxy(image_targets[:, 2:6]).T
-            boxes = np.tile(image_targets[:, 2:4], 2).T
+
+            if image_targets.shape[1] == 5: # training time
+                boxes = np.tile(image_targets[:, 2:4], 2).T
+            else:
+                boxes = xywh2xyxy(image_targets[:, 2:6]).T
             classes = image_targets[:, 1].astype('int')
-            labels = image_targets.shape[1] == 5  # labels if no conf column
-            conf = None if labels else image_targets[:, 5]  # check for confidence presence (label vs pred)
+            labels = image_targets.shape[1] < 8  # labels if no conf column
+            conf = None if labels else image_targets[:, 7]  # check for confidence presence (label vs pred)
 
             if boxes.shape[1]:
                 if boxes.max() <= 1.01:  # if normalized with tolerance 0.01

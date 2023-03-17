@@ -339,7 +339,7 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
             augment_hsv(img, hgain=hyp['hsv_h'], sgain=hyp['hsv_s'], vgain=hyp['hsv_v'])
 
             # Apply copy paste
-            img, labels = copy_paste(img, labels, [1], self.hyp['copy_paste'], self.hyp['num_of_copies'])
+            img, labels = copy_paste(img, labels, [1], self.hyp['copy_paste'], self.hyp['num_of_copies'], mosaic)
 
         nL = len(labels)  # number of labels
         if nL:
@@ -568,10 +568,6 @@ def load_mosaic9(self, index):
         np.clip(x, 0, 2 * s, out=x)  # clip when using random_perspective()
     # img9, labels9 = replicate(img9, labels9)  # replicate
 
-    # Augment
-    #img9, labels9, segments9 = remove_background(img9, labels9, segments9)
-    img9, labels9, segments9 = copy_paste(img9, labels9, segments9, probability=self.hyp['copy_paste'])
-
     return img9, labels9
 
 
@@ -626,14 +622,14 @@ def load_samples(self, index):
     return sample_labels, sample_images, sample_masks
 
 
-def copy_paste(img, labels, classes, probability=0.5, copies=1):
+def copy_paste(img, labels, classes, probability=0.5, copies=1, mosaic=False):
     box_w = 80
     box_h = 80
     box_h_half = int(box_h // 2)
     box_w_half = int(box_w // 2)
     copy_l = labels[np.isin(labels[:, 0], classes)]
     n = len(copy_l)
-    if probability and (n in range(1, 3)):
+    if probability and (mosaic or (n in range(1, 3))):
         h, w, c = img.shape  # height, width, channels
         im_new = np.zeros(img.shape, np.uint8)
 

@@ -34,8 +34,8 @@ def test(data,
          wandb_logger=None,
          compute_loss=None,
          half_precision=False,
+         plots=True,
          trace=False,
-         is_coco=False,
          v5_metric=False):
     # Bounding box dimensions
     b, a = 20, 35 # semi-minor and semi-major bee ellipse axis
@@ -126,6 +126,7 @@ def test(data,
             t1 += time_synchronized() - t
 
         # Statistics per image
+        targ_expand = []
         for si, pred in enumerate(out):
             labels = targets[targets[:, 0] == si, 1:]
             nl = len(labels)
@@ -155,6 +156,7 @@ def test(data,
                                   torch.full((nl, 1), box_w).to(device),
                                   torch.where(tcls_tensor==0, box_h, box_w)[..., None].to(device),
                                   labels[:, 3:]], axis=-1)
+                targ_expand.append(torch.cat((torch.full((nl, 1), si).to(device), tcls_tensor[..., None], tbox), axis=1)) # assign expanded targets
 
                 # Per target class
                 for cls in torch.unique(tcls_tensor):
@@ -179,6 +181,14 @@ def test(data,
 
             # Append statistics (correct, conf, pcls, tcls)
             stats.append((correct.cpu(), pred[:, 5].cpu(), pred[:, 6].cpu(), tcls))
+
+        # Plot images
+        targ_expand = torch.cat(targ_expand, axis=0)
+        if plots and batch_i < 3:
+            f = save_dir / f'test_batch{batch_i}_labels.jpg'  # labels
+            Thread(target=plot_images, args=(img, targ_expand, paths, f, names), daemon=True).start()
+            f = save_dir / f'test_batch{batch_i}_pred.jpg'  # predictions
+            Thread(target=plot_images, args=(img, output_to_target(out), paths, f, names), daemon=True).start()
 
     # Compute statistics
     stats = [np.concatenate(x, 0) for x in zip(*stats)]  # to numpy
