@@ -177,7 +177,8 @@ class ComputeLoss:
                 pa = ps[:, 2]
                 da = pa - tpos[i][:, 2]
                 da = da[tcls[i] == 0]
-                lang += (1 - torch.cos(da)).mean()
+                if da.shape[0]:
+                    lang += (1 - torch.cos(da)).mean()
 
                 # Objectness
                 tobj[b, gj, gi] = 1.0
@@ -228,7 +229,7 @@ class ComputeLoss:
                 t = t.repeat((5, 1, 1))[j]
                 offsets = (torch.zeros_like(gxy)[None] + off[:, None])[j]
             else:
-                t = targets[0]
+                t = targets
                 offsets = 0
 
             # Define

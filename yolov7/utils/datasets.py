@@ -627,16 +627,18 @@ def load_samples(self, index):
 
 
 def copy_paste(img, labels, classes, probability=0.5, copies=1):
-    n = len(labels)
     box_w = 80
     box_h = 80
     box_h_half = int(box_h // 2)
     box_w_half = int(box_w // 2)
-    if probability and n:
+    copy_l = labels[np.isin(labels[:, 0], classes)]
+    n = len(copy_l)
+    if probability and (n in range(1, 3)):
         h, w, c = img.shape  # height, width, channels
         im_new = np.zeros(img.shape, np.uint8)
+
         for j in random.sample(range(n), k=round(probability * n)):
-            l = labels[j]
+            l = copy_l[j]
             if l[0] in classes:
                 box = img[int(l[2]) - box_h_half:int(l[2]) + box_h_half,
                           int(l[1]) - box_w_half:int(l[1]) + box_w_half, :]
