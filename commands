@@ -1,13 +1,13 @@
 python train.py \
---epochs 300 \
+--epochs 200 \
 --workers 4 \
 --device 0 \
---batch-size 4 \
+--batch-size 8 \
 --data data/data.yaml \
 --img-size 512 512 \
---cfg cfg/training/yolov7.yaml \
---weights 'yolov7_training.pt' \
---name yolov7-tiny_003 \
+--cfg cfg/training/yolov7-tiny.yaml \
+--weights 'yolov7-tiny.pt' \
+--name yolov7-tiny_003_sharpen \
 --hyp data/hyp.scratch.yaml \
 --image-weights \
 --exist-ok \
