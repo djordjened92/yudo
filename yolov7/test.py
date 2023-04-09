@@ -76,7 +76,7 @@ def test(data,
             data = yaml.load(f, Loader=yaml.SafeLoader)
     check_dataset(data)  # check
     nc = 1 if single_cls else int(data['nc'])  # number of classes
-    iouv = torch.linspace(0.5, 0.95, 10).to(device)  # iou vector for mAP@0.5:0.95
+    iouv = torch.linspace(0.25, 0.95, 10).to(device)  # iou vector for mAP@0.5:0.95
     niou = iouv.numel()
 
     # Logging
@@ -257,16 +257,15 @@ if __name__ == '__main__':
     #check_requirements()
 
     if opt.task in ('train', 'val', 'test'):  # run normally
-        test(opt.data,
-             opt.weights,
-             opt.batch_size,
-             opt.img_size,
-             opt.conf_thres,
-             opt.iou_thres,
-             opt.save_json,
-             opt.single_cls,
-             opt.augment,
-             opt.verbose,
+        test(data=opt.data,
+             weights=opt.weights,
+             batch_size=opt.batch_size,
+             imgsz=opt.img_size,
+             conf_thres=opt.conf_thres,
+             iou_thres=opt.iou_thres,
+             single_cls=opt.single_cls,
+             augment=opt.augment,
+             verbose=opt.verbose,
              save_txt=opt.save_txt,
              trace=not opt.no_trace,
              v5_metric=opt.v5_metric

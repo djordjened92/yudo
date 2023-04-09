@@ -547,6 +547,8 @@ def rbox_iou_d2(dt, gt):
     '''
     # Transfrom angles from radians to degrees [-180, 180]
     # (positive direction for CCW)
+    gt_rad = gt[:, -1].clone()
+    dt_rad = dt[:, -1].clone().unsqueeze(-1)
     dt[..., -1] = torch.rad2deg(torch.where(dt[..., -1] < torch.pi,
                                       -dt[..., -1],
                                       2*torch.pi - dt[..., -1]))
@@ -559,9 +561,7 @@ def rbox_iou_d2(dt, gt):
     iou = pairwise_iou_rotated(dt_rb, gt_rb)
 
     # Direction scale
-    gt_a = gt[:, -1]
-    dt_a = dt[:, -1].unsqueeze(-1)
-    angle_dist = (1 + torch.cos(dt_a - gt_a)) / 2
+    angle_dist = (1 + torch.cos(dt_rad - gt_rad)) / 2
     iou = iou * angle_dist
 
     return iou
@@ -721,7 +721,7 @@ def non_max_suppression(prediction, box_w, box_h, conf_thres=0.25, iou_thres=0.4
 
     t = time.time()
     output = [torch.zeros((0, 7), device=prediction.device)] * prediction.shape[0]
-    for xi, x in enumerate(prediction):  # image index, image inference
+    for xi, x in enumerate(prediction):  # layer index, layer inference
         # Apply constraints
         # x[((x[..., 2:4] < min_wh) | (x[..., 2:4] > max_wh)).any(1), 4] = 0  # width-height
         x = x[xc[xi]]  # confidence
@@ -759,7 +759,7 @@ def non_max_suppression(prediction, box_w, box_h, conf_thres=0.25, iou_thres=0.4
 
         # Batched NMS
         c = x[:, 6:7] * (0 if agnostic else max_wh)  # classes
-        boxes, scores = torch.cat((x[:, :4] + c, x[:, 4:5]), 1), x[:, 5]  # boxes (offset by class), scores
+        boxes, scores = torch.cat((x[:, :2] + c, x[:, 2:5]), 1), x[:, 5]  # boxes (offset by class), scores
         i = nms_rotated(boxes, scores, iou_thres)  # NMS
 
         if i.shape[0] > max_det:  # limit detections

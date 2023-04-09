@@ -176,7 +176,7 @@ class ComputeLoss:
                 da = pa - tpos[i][:, 2]
                 da = da[tcls[i] == 0]
                 if da.shape[0]:
-                    lang += (1 - torch.cos(da)).mean()
+                    lang += torch.abs(da).mean()
 
                 # Objectness
                 tobj[b, gj, gi] = 1.0

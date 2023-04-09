@@ -54,18 +54,44 @@ def butter_lowpass_filtfilt(data, cutoff=1500, fs=50000, order=5):
     return filtfilt(b, a, data)  # forward-backward filter
 
 
-def plot_one_box(x, img, color=None, label=None, line_thickness=3):
+def plot_one_box(x, angle, img, color=None, label=None, line_thickness=3):
     # Plots one bounding box on image img
     tl = line_thickness or round(0.002 * (img.shape[0] + img.shape[1]) / 2) + 1  # line/font thickness
     color = color or [random.randint(0, 255) for _ in range(3)]
-    c1, c2 = (int(x[0]), int(x[1])), (int(x[2]), int(x[3]))
-    cv2.rectangle(img, c1, c2, color, thickness=tl, lineType=cv2.LINE_AA)
-    if label:
-        tf = max(tl - 1, 1)  # font thickness
-        t_size = cv2.getTextSize(label, 0, fontScale=tl / 3, thickness=tf)[0]
-        c2 = c1[0] + t_size[0], c1[1] - t_size[1] - 3
-        cv2.rectangle(img, c1, c2, color, -1, cv2.LINE_AA)  # filled
-        cv2.putText(img, label, (c1[0], c1[1] - 2), 0, tl / 3, [225, 255, 255], thickness=tf, lineType=cv2.LINE_AA)
+    x1, y1, x2, y2 = x
+    xc = (x1 + x2) / 2
+    yc = (y1 + y2) / 2
+
+    x3, y3 = x2, y2
+    x2, y2 = x3, y1
+    x4, y4 = x1, y3
+    orig_coors = [[x1, y1], [x2, y2], [x3, y3], [x4, y4]]
+
+    # Calculate rotated box
+    rot_coors = []
+    for i in range(4):
+        xi, yi = orig_coors[i]
+        yr_i = np.cos(angle) * (yi - yc) + np.sin(angle) * (xi - xc) + yc
+        xr_i = -np.sin(angle) * (yi - yc) + np.cos(angle) * (xi - xc) + xc
+        rot_coors.append([xr_i, yr_i])
+
+    # Plot rotated box
+    for i in range(4):
+        start = rot_coors[i]
+        end = rot_coors[(i + 1) % 4]
+        is_head = ('regular' in label) and i == 0
+        cv2.line(img, list(map(int, start)),
+                 list(map(int, end)),
+                 (255, 0, 0) if is_head else color,
+                 thickness=tl,
+                 lineType=cv2.LINE_AA)
+
+    # if label:
+    #     tf = max(tl - 1, 1)  # font thickness
+    #     t_size = cv2.getTextSize(label, 0, fontScale=tl / 3, thickness=tf)[0]
+    #     c2 = c1[0] + t_size[0], c1[1] - t_size[1] - 3
+    #     cv2.rectangle(img, c1, c2, color, -1, cv2.LINE_AA)  # filled
+    #     cv2.putText(img, label, (c1[0], c1[1] - 2), 0, tl / 3, [225, 255, 255], thickness=tf, lineType=cv2.LINE_AA)
 
 
 def plot_one_box_PIL(box, img, color=None, label=None, line_thickness=None):
@@ -154,8 +180,10 @@ def plot_images(images, targets, paths=None, fname='images.jpg', names=None, max
 
             if image_targets.shape[1] == 5: # training time
                 boxes = np.tile(image_targets[:, 2:4], 2).T
+                angles = image_targets[:, 4]
             else:
                 boxes = xywh2xyxy(image_targets[:, 2:6]).T
+                angles = image_targets[:, 6]
             classes = image_targets[:, 1].astype('int')
             labels = image_targets.shape[1] < 8  # labels if no conf column
             conf = None if labels else image_targets[:, 7]  # check for confidence presence (label vs pred)
@@ -174,7 +202,7 @@ def plot_images(images, targets, paths=None, fname='images.jpg', names=None, max
                 cls = names[cls] if names else cls
                 if labels or conf[j] > 0.25:  # 0.25 conf thresh
                     label = '%s' % cls if labels else '%s %.1f' % (cls, conf[j])
-                    plot_one_box(box, mosaic, label=label, color=color, line_thickness=tl)
+                    plot_one_box(box, angles[j], mosaic, label=label, color=color, line_thickness=tl)
 
         # Draw image filename labels
         if paths:
