@@ -26,16 +26,16 @@
 !cfg/yolov3*.cfg
 
 storage.googleapis.com
-yolov7/runs/*
-yolov7/data/*
-yolov7/data/images/*
-!yolov7/data/*.yaml
-!yolov7/data/hyps
-!yolov7/data/scripts
-!yolov7/data/images
-!yolov7/data/images/zidane.jpg
-!yolov7/data/images/bus.jpg
-!yolov7/data/*.sh
+runs/*
+data/*
+data/images/*
+!data/*.yaml
+!data/hyps
+!data/scripts
+!data/images
+!data/images/zidane.jpg
+!data/images/bus.jpg
+!data/*.sh
 
 results*.csv
 

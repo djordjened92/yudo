@@ -1,9 +1,0 @@
-# train and val data as 1) directory: path/images/, 2) file: path/images.txt, or 3) list: [path1/images/, path2/images/]
-train: /home/djordje/Documents/Projects/honeybee_det/yolo_anns/train.txt  # 118287 images
-val: /home/djordje/Documents/Projects/honeybee_det/yolo_anns/val.txt  # 5000 images
-
-# number of classes
-nc: 2
-
-# class names
-names: [ 'regular', 'abdomen' ]
