@@ -121,6 +121,7 @@ class IDetect(nn.Module):
             x[i] = self.im[i](x[i])
             bs, _, ny, nx = x[i].shape  # x(bs,255,20,20) to x(bs,3,20,20,85)
             x[i] = x[i].view(bs, self.no, ny, nx).permute(0, 2, 3, 1).contiguous()
+            x[i][..., 2] = torch.remainder(x[i][..., 2].relu(), 2*torch.pi)
 
             if not self.training:  # inference
                 if self.grid[i].shape[1:3] != x[i].shape[1:3]:

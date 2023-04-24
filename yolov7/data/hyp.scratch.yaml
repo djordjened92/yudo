@@ -1,4 +1,4 @@
-lr0: 0.01  # initial learning rate (SGD=1E-2, Adam=1E-3)
+lr0: 0.001  # initial learning rate (SGD=1E-2, Adam=1E-3)
 lrf: 0.01  # final OneCycleLR learning rate (lr0 * lrf)
 momentum: 0.937  # SGD momentum/Adam beta1
 weight_decay: 0.0005  # optimizer weight decay 5e-4
@@ -13,7 +13,7 @@ obj: 1.0  # obj loss gain (scale with pixels)
 obj_pw: 1.0  # obj BCELoss positive_weight
 iou_t: 0.20  # IoU training threshold
 anchor_t: 4.0  # anchor-multiple threshold
-fl_gamma: 1.5  # focal loss gamma (efficientDet default gamma=1.5)
+fl_gamma: 0.0  # focal loss gamma (efficientDet default gamma=1.5)
 hsv_h: 0.1  # image HSV-Hue augmentation (fraction)
 hsv_s: 0.1  # image HSV-Saturation augmentation (fraction)
 hsv_v: 0.1  # image HSV-Value augmentation (fraction)
@@ -27,4 +27,4 @@ fliplr: 0.3  # image flip left-right (probability)
 mosaic: 0.0  # image mosaic (probability)
 mixup: 0.0  # image mixup (probability)
 copy_paste: 1.0  # image copy paste (probability)
-num_of_copies: 3
+num_of_copies: 2
