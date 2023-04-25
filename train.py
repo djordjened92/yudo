@@ -608,8 +608,6 @@ if __name__ == '__main__':
                 'cls_pw': (1, 0.5, 2.0),  # cls BCELoss positive_weight
                 'obj': (1, 0.2, 4.0),  # obj loss gain (scale with pixels)
                 'obj_pw': (1, 0.5, 2.0),  # obj BCELoss positive_weight
-                'iou_t': (0, 0.1, 0.7),  # IoU training threshold
-                'anchor_t': (1, 2.0, 8.0),  # anchor-multiple threshold
                 'anchors': (2, 2.0, 10.0),  # anchors per output grid (0 to ignore)
                 'fl_gamma': (0, 0.0, 2.0),  # focal loss gamma (efficientDet default gamma=1.5)
                 'hsv_h': (1, 0.0, 0.1),  # image HSV-Hue augmentation (fraction)

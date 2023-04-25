@@ -279,7 +279,7 @@ def plot_study_txt(path='', x=None):  # from utils.plots import *; plot_study_tx
     for f in sorted(Path(path).glob('study*.txt')):
         y = np.loadtxt(f, dtype=np.float32, usecols=[0, 1, 2, 3, 7, 8, 9], ndmin=2).T
         x = np.arange(y.shape[1]) if x is None else np.array(x)
-        s = ['P', 'R', 'mAP@.5', 'mAP@.5:.95', 't_inference (ms/img)', 't_NMS (ms/img)', 't_total (ms/img)']
+        s = ['P', 'R', 'mAP@.3', 'mAP@.3:.95', 't_inference (ms/img)', 't_NMS (ms/img)', 't_total (ms/img)']
         # for i in range(7):
         #     ax[i].plot(x, y[i], '.-', linewidth=2, markersize=8)
         #     ax[i].set_title(s[i])
