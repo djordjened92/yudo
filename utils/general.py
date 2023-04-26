@@ -17,8 +17,7 @@ import pandas as pd
 import torch
 import torchvision
 import yaml
-from shapely.geometry import Polygon
-from detectron2.structures import BoxMode, RotatedBoxes, pairwise_iou_rotated
+from detectron2.structures import RotatedBoxes, pairwise_iou_rotated
 
 from utils.google_utils import gsutil_getsize
 from utils.metrics import fitness
@@ -467,73 +466,6 @@ def box_iou(box1, box2):
     # inter(N,M) = (rb(N,M,2) - lt(N,M,2)).clamp(0).prod(2)
     inter = (torch.min(box1[:, None, 2:], box2[:, 2:]) - torch.max(box1[:, None, :2], box2[:, :2])).clamp(0).prod(2)
     return inter / (area1[:, None] + area2 - inter)  # iou = inter / (area1 + area2 - inter)
-
-def rbox_iou_shapely(gt, pr):
-    """
-    iou of rbox
-    g, p are in format [xc, yc, angle]
-    """
-    # Bounding box dimensions
-    b, a = 20, 35 # semi-minor and semi-major bee ellipse axis
-    box_w = 2 * b
-    box_h = 2 * a
-
-    # Get bbox points' coordinates
-    # O--------> x
-    # |
-    # |  A---B
-    # |  | E |
-    # |  D---C
-    # |
-    # v y
-    gtc = [[gt[0] - box_w//2, gt[1] - box_h//2], 
-           [gt[0] + box_w//2, gt[1] - box_h//2],
-           [gt[0] + box_w//2, gt[1] + box_h//2],
-           [gt[0] - box_w//2, gt[1] + box_h//2]]
-    
-    prc = [[pr[0] - box_w//2, pr[1] - box_h//2], 
-           [pr[0] + box_w//2, pr[1] - box_h//2],
-           [pr[0] + box_w//2, pr[1] + box_h//2],
-           [pr[0] - box_w//2, pr[1] + box_h//2]]
-    
-    # Rotate bboxes
-    gtr = []
-    prr = []
-
-    for i in range(4):
-        '''
-        xri=-sin(θ)(yi-yc)+cos(θ)(xi-xc)+xc
-        yri=cos(θ)(yi-yc)+sin(θ)(xi-xc)+yc
-        '''
-        gtr.append(-np.sin(gt[2]) * (gtc[i][1] - gt[1]) + \
-                   np.cos(gt[2]) * (gtc[i][0] - gt[0]) + gt[0]) # append X
-        gtr.append(np.cos(gt[2]) * (gtc[i][1] - gt[1]) + \
-                   np.sin(gt[2]) * (gtc[i][0] - gt[0]) + gt[1]) # append Y
-
-        prr.append(-np.sin(pr[2]) * (prc[i][1] - pr[1]) + \
-                   np.cos(pr[2]) * (prc[i][0] - pr[0]) + pr[0]) # append X
-        prr.append(np.cos(pr[2]) * (prc[i][1] - pr[1]) + \
-                   np.sin(pr[2]) * (prc[i][0] - pr[0]) + pr[1]) # append Y
-
-    g = np.array(gtr).astype(int)
-    p = np.array(prr).astype(int)
-    g = Polygon(g[:8].reshape((4, 2)))
-    p = Polygon(p[:8].reshape((4, 2)))
-    g = g.buffer(0)
-    p = p.buffer(0)
-    if not g.is_valid or not p.is_valid:
-        return 0
-    inter = Polygon(g).intersection(Polygon(p)).area
-    union = g.area + p.area - inter
-
-    if union == 0:
-        return 0
-    else:
-        # Cosine distance[0, 2] -> rescaled to the [0, 1]
-        # ds = (1 + cos(dθ)) / 2
-        direction_scale = (1 + np.cos(gt[2] - pr[2])) / 2
-        iou = direction_scale * (inter / union)
-        return iou
 
 def rbox_iou_d2(dt, gt):
     '''

@@ -36,6 +36,7 @@ data/images/*
 !data/images/zidane.jpg
 !data/images/bus.jpg
 !data/*.sh
+!docker/*
 
 results*.csv
 
