@@ -5,5 +5,3 @@ RUN apt-get install -y libgl1-mesa-glx
 
 COPY requirements.txt /tmp
 RUN pip install -r /tmp/requirements.txt
-
-RUN pip install 'git+https://github.com/facebookresearch/detectron2.git'

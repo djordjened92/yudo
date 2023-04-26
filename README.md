@@ -1,13 +1,17 @@
 # YOLO for Uniform Directed Object detection
 
-## Docker build
+## Requirements
 ```bash
 docker build --rm --no-cache -t yudo:version_1 -f Dockerfile .
 ```
 
-## Docker run
 ```bash
 docker run --gpus device=0 --rm --shm-size=1G -ti -v {YOUR CODE PATH}:/yudo --name yudo yudo:version_1
+```
+
+Install in addition:
+```bash
+pip install 'git+https://github.com/facebookresearch/detectron2.git'
 ```
 
 ## Run the training
