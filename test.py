@@ -22,7 +22,7 @@ def test(data,
          weights=None,
          batch_size=32,
          imgsz=640,
-         conf_thres=0.001,
+         conf_thres=0.1,
          iou_thres=0.3,
          single_cls=False,
          augment=False,
@@ -184,11 +184,14 @@ def test(data,
 
         # Plot images
         targ_expand = torch.cat(targ_expand, axis=0)
-        if plots and batch_i < 3:
-            f = save_dir / f'test_batch{batch_i}_labels.jpg'  # labels
-            Thread(target=plot_images, args=(img, targ_expand, paths, f, names), daemon=True).start()
-            f = save_dir / f'test_batch{batch_i}_pred.jpg'  # predictions
-            Thread(target=plot_images, args=(img, output_to_target(out), paths, f, names), daemon=True).start()
+        if plots and batch_i == 0:
+            # f = save_dir / f'test_batch{batch_i}_labels.jpg'  # labels
+            # Thread(target=plot_images, args=(img, targ_expand, paths, f, names), daemon=True).start()
+            # f = save_dir / f'test_batch{batch_i}_pred.jpg'  # predictions
+            # Thread(target=plot_images, args=(img, output_to_target(out), paths, f, names), daemon=True).start()
+            img = np.transpose(img.cpu().numpy()*255, (0, 2, 3, 1)).copy().astype(np.uint8)
+            img = plot_images(img, targ_expand, (255, 255, 0), names=names)
+            img = plot_images(img, output_to_target(out), (0, 255, 0), out_dir=save_dir, names=names)
 
     # Compute statistics
     stats = [np.concatenate(x, 0) for x in zip(*stats)]  # to numpy

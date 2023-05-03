@@ -8,9 +8,9 @@ from collections import defaultdict
 IMG_SIZE = 512
 ORIGINAL_IMAGES = '/home/djordje/data/bee_track/frames'
 ORIGINAL_LABELS = '/home/djordje/data/bee_track/frames_txt'
-DST_IMGS_DIR = '/home/djordje/Documents/Projects/honeybee_det/yolo_anns/images'
-DST_ANN_DIR = '/home/djordje/Documents/Projects/honeybee_det/yolo_anns/labels'
-VAL_RATIO = 0.1
+DST_IMGS_DIR = '/home/djordje/Documents/Projects/yudo/yolo_anns/images'
+DST_ANN_DIR = '/home/djordje/Documents/Projects/yudo/yolo_anns/labels'
+VAL_RATIO = 0.091
 
 label_files = os.listdir(ORIGINAL_LABELS)
 ann_30fps = defaultdict(list)

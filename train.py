@@ -45,6 +45,10 @@ def train(hyp, opt, device, tb_writer=None):
     # Directories
     wdir = save_dir / 'weights'
     wdir.mkdir(parents=True, exist_ok=True)  # make dir
+    train_img_dir = save_dir / 'train_imgs'
+    train_img_dir.mkdir(parents=True, exist_ok=True)
+    test_img_dir = save_dir / 'test_imgs'
+    test_img_dir.mkdir(parents=True, exist_ok=True)
     last = wdir / 'last.pt'
     best = wdir / 'best.pt'
     results_file = save_dir / 'results.txt'
@@ -373,9 +377,9 @@ def train(hyp, opt, device, tb_writer=None):
                 pbar.set_description(s)
 
                 # Plot
-                if plots and ni < 10:
-                    f = save_dir / f'train_batch{ni}.jpg'  # filename
-                    Thread(target=plot_images, args=(imgs, targets, paths, f), daemon=True).start()
+                if plots and ni == 0:
+                    imgs = np.transpose(imgs.cpu().numpy()*255, (0, 2, 3, 1)).copy().astype(np.uint8)
+                    Thread(target=plot_images, args=(imgs, targets, (255, 255, 0), names, train_img_dir), daemon=True).start()
                     # if tb_writer:
                     #     tb_writer.add_image(f, result, dataformats='HWC', global_step=epoch)
                     #     tb_writer.add_graph(torch.jit.trace(model, imgs, strict=False), [])  # add model graph
@@ -403,7 +407,7 @@ def train(hyp, opt, device, tb_writer=None):
                                                  model=ema.ema,
                                                  single_cls=opt.single_cls,
                                                  dataloader=testloader,
-                                                 save_dir=save_dir,
+                                                 save_dir=test_img_dir,
                                                  verbose=True,
                                                  wandb_logger=wandb_logger,
                                                  compute_loss=compute_loss,
@@ -481,7 +485,7 @@ def train(hyp, opt, device, tb_writer=None):
                                           model=attempt_load(m, device).half(),
                                           single_cls=opt.single_cls,
                                           dataloader=testloader,
-                                          save_dir=save_dir,
+                                          save_dir=test_img_dir,
                                           is_coco=is_coco,
                                           v5_metric=opt.v5_metric)
 
