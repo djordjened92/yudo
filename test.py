@@ -190,7 +190,7 @@ def test(data,
             # f = save_dir / f'test_batch{batch_i}_pred.jpg'  # predictions
             # Thread(target=plot_images, args=(img, output_to_target(out), paths, f, names), daemon=True).start()
             img = np.transpose(img.cpu().numpy()*255, (0, 2, 3, 1)).copy().astype(np.uint8)
-            img = plot_images(img, targ_expand, (255, 255, 0), names=names)
+            img = plot_images(img, targ_expand, (255, 0, 0), names=names)
             img = plot_images(img, output_to_target(out), (0, 255, 0), out_dir=save_dir, names=names)
 
     # Compute statistics

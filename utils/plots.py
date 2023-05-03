@@ -72,21 +72,22 @@ def plot_one_box(x, angle, img, color, label=None, line_thickness=3):
         xi, yi = orig_coors[i]
         yr_i = np.cos(angle) * (yi - yc) + np.sin(angle) * (xi - xc) + yc
         xr_i = -np.sin(angle) * (yi - yc) + np.cos(angle) * (xi - xc) + xc
-        rot_coors.append([xr_i, yr_i])
+        rot_coors.append([int(xr_i), int(yr_i)])
 
     # Plot rotated box
-    for i in range(4):
-        start = rot_coors[i]
-        end = rot_coors[(i + 1) % 4]
-        cv2.line(img, list(map(int, start)),
-                 list(map(int, end)),
-                 color,
-                 thickness=tl,
-                 lineType=cv2.LINE_AA)
-    
+    # for i in range(4):
+    #     start = rot_coors[i]
+    #     end = rot_coors[(i + 1) % 4]
+    #     cv2.line(img, list(map(int, start)),
+    #              list(map(int, end)),
+    #              color,
+    #              thickness=tl,
+    #              lineType=cv2.LINE_AA)
+    cv2.fillPoly(img, pts=[np.array(rot_coors)], color=color)
+
     if 'regular' in label:
-        end_x = int(xc + 50 * np.sin(angle))
-        end_y = int(yc - 50 * np.cos(angle))
+        end_x = int(xc + 60 * np.sin(angle))
+        end_y = int(yc - 60 * np.cos(angle))
         cv2.arrowedLine(img, (int(xc), int(yc)), (end_x, end_y), color, tl)
 
     # if label:
@@ -170,11 +171,15 @@ def plot_images(images, targets, color, names=None, out_dir=None, paths=None, ma
                     boxes[[0, 2]] *= w  # scale to pixels
                     boxes[[1, 3]] *= h
 
+            overlay = img.copy()
             for j, box in enumerate(boxes.T):
                 cls = int(classes[j])
                 cls = names[cls] if names else cls
                 label = '%s' % cls if labels else '%s %.1f' % (cls, conf[j])
-                plot_one_box(box, angles[j], img, label=label, color=color, line_thickness=tl)
+                plot_one_box(box, angles[j], overlay, label=label, color=color, line_thickness=tl)
+
+            alpha = 0.6
+            img = cv2.addWeighted(overlay, alpha, img, 1 - alpha, 0)
 
         # Draw image filename labels
         if paths:
