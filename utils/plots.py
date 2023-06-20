@@ -86,9 +86,9 @@ def plot_one_box(x, angle, img, color, label=None, line_thickness=3):
     cv2.fillPoly(img, pts=[np.array(rot_coors)], color=color)
 
     if 'regular' in label:
-        end_x = int(xc + 60 * np.sin(angle))
-        end_y = int(yc - 60 * np.cos(angle))
-        cv2.arrowedLine(img, (int(xc), int(yc)), (end_x, end_y), color, tl)
+        end_x = int(xc + 70 * np.sin(angle))
+        end_y = int(yc - 70 * np.cos(angle))
+        cv2.arrowedLine(img, (int(xc), int(yc)), (end_x, end_y), color, 3)
 
     # if label:
     #     tf = max(tl - 1, 1)  # font thickness

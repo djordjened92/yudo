@@ -4,6 +4,8 @@ import os
 from pathlib import Path
 from threading import Thread
 
+import cv2
+from PIL import Image
 import numpy as np
 import torch
 import yaml
@@ -190,8 +192,13 @@ def test(data,
             # f = save_dir / f'test_batch{batch_i}_pred.jpg'  # predictions
             # Thread(target=plot_images, args=(img, output_to_target(out), paths, f, names), daemon=True).start()
             img = np.transpose(img.cpu().numpy()*255, (0, 2, 3, 1)).copy().astype(np.uint8)
-            img = plot_images(img, targ_expand, (255, 0, 0), names=names)
-            img = plot_images(img, output_to_target(out), (0, 255, 0), out_dir=save_dir, names=names)
+            img1 = plot_images(img, targ_expand, (255, 0, 0), names=names)
+            img2 = plot_images(img.copy(), output_to_target(out), (0, 255, 0), names=names)
+            
+            for i, im in enumerate(img1):
+                alpha = 0.5
+                imf = cv2.addWeighted(im, alpha, img2[i], 1 - alpha, 0)
+                Image.fromarray(imf).save(os.path.join(save_dir, f'{i}.jpg'))
 
     # Compute statistics
     stats = [np.concatenate(x, 0) for x in zip(*stats)]  # to numpy
