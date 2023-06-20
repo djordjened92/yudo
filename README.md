@@ -1,6 +1,6 @@
 # YOLO for Uniform Directed Object detection
 
-This project is an adaptation of the popular [YOLOv7]('https://github.com/WongKinYiu/yolov7') model, used for
+This project is an adaptation of the popular [YOLOv7](https://github.com/WongKinYiu/yolov7) model, used for
 detection of directed objects with uniform dimensions.
 
 ## Requirements
