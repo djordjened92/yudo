@@ -17,6 +17,9 @@ Install in addition:
 pip install 'git+https://github.com/facebookresearch/detectron2.git'
 ```
 
+## Prepare annotations
+The dataset used in this project is obtained from [Honeybee Segmentation and Tracking Datasets](https://groups.oist.jp/bptu/honeybee-tracking-dataset). An image cropping and adapting labels' format to the yolo format can be done using the `gen_yolo_anns.py` script.
+
 ## Run the training
 A training command example:
 ```bash
