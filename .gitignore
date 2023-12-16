@@ -37,6 +37,7 @@ data/images/*
 !data/images/bus.jpg
 !data/*.sh
 !docker/*
+!assets/*
 
 results*.csv
 

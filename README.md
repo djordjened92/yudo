@@ -2,6 +2,10 @@
 
 This project is an implementation of the paper [YUDO: YOLO for Uniform Directed Object Detection](https://arxiv.org/abs/2308.04542). The codebase is an adaptation of the popular [YOLOv7](https://github.com/WongKinYiu/yolov7) model, used for detection of directed objects with uniform dimensions.
 
+<p align="center">
+  <img width="400" height="400" src="assets/yudo_det_examlpes.png">
+</p>
+
 ## Requirements
 ```bash
 docker build --rm --no-cache -t yudo:version_1 -f Dockerfile .
