@@ -41,3 +41,14 @@ python train.py \
 --exist-ok \
 --adam
 ```
+
+## Citation
+If you find this project usefull, please consider citing the paper:
+```bash
+@article{nedeljkovic2023yudo,
+  title={YUDO: YOLO for Uniform Directed Object Detection},
+  author={Nedeljkovi{\'c}, {\DJ}or{\dj}e},
+  journal={arXiv preprint arXiv:2308.04542},
+  year={2023}
+}
+```
